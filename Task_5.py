@@ -1,31 +1,34 @@
 import uuid
 import networkx as nx
 import matplotlib.pyplot as plt
-import math
 
 class Node:
-    def __init__(self, key, color="skyblue"):
+    def __init__(self, key):
         self.left = None
         self.right = None
         self.val = key
-        self.color = color  
-        self.id = str(uuid.uuid4())
 
 def add_edges(graph, node, pos, visit_order, x=0, y=0, layer=1):
     if node in visit_order:
         idx = visit_order.index(node)
-        graph.add_node(node.id, color=node.color, label=f"{node.val}\n{idx+1}")
+        graph.add_node(node.val, color=calculate_color(idx, len(visit_order)), label=f"{node.val}\n{idx+1}")
         if node.left:
-            graph.add_edge(node.id, node.left.id)
+            graph.add_edge(node.val, node.left.val)
             l = x - 1 / 2 ** layer
-            pos[node.left.id] = (l, y - 1)
+            pos[node.left.val] = (l, y - 1)
             add_edges(graph, node.left, pos, visit_order, x=l, y=y - 1, layer=layer + 1)
         if node.right:
-            graph.add_edge(node.id, node.right.id)
+            graph.add_edge(node.val, node.right.val)
             r = x + 1 / 2 ** layer
-            pos[node.right.id] = (r, y - 1)
+            pos[node.right.val] = (r, y - 1)
             add_edges(graph, node.right, pos, visit_order, x=r, y=y - 1, layer=layer + 1)
     return graph
+
+def calculate_color(index, total):
+    r = 0.1 + 0.9 * (index / total)
+    g = 0.1
+    b = 0.9 - 0.9 * (index / total)
+    return (r, g, b, 1.0)
 
 def build_heap_tree(arr):
     nodes = [Node(val) for val in arr]
@@ -38,7 +41,6 @@ def build_heap_tree(arr):
 
 def dfs(node, visit_order, depth=0):
     if node is not None:
-        node.color = f"#{int(255 - depth * 20):02x}{int(150 + depth * 10):02x}70"
         visit_order.append(node)
         if node.left:
             dfs(node.left, visit_order, depth + 1)
@@ -51,7 +53,6 @@ def bfs(root):
     while queue:
         node, depth = queue.pop(0)
         if node is not None:
-            node.color = f"#{int(255 - depth * 20):02x}{int(150 + depth * 10):02x}70"
             visit_order.append(node)
             queue.append((node.left, depth + 1))
             queue.append((node.right, depth + 1))
@@ -59,11 +60,11 @@ def bfs(root):
 
 def draw_tree(tree_root, visit_order):
     tree = nx.DiGraph()
-    pos = {tree_root.id: (0, 0)}
+    pos = {node.val: (0, -i) for i, node in enumerate(visit_order)}
     tree = add_edges(tree, tree_root, pos, visit_order)
 
-    colors = [node[1]['color'] for node in tree.nodes(data=True)]
-    labels = {node[0]: node[1]['label'] for node in tree.nodes(data=True)}
+    colors = [tree.nodes[node]['color'] for node in tree.nodes()]
+    labels = {node: tree.nodes[node]['label'] for node in tree.nodes()}
 
     plt.figure(figsize=(12, 8))
     nx.draw(tree, pos=pos, labels=labels, arrows=False, node_size=2500, node_color=colors)
